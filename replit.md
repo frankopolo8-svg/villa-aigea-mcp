@@ -1,36 +1,50 @@
-# [Project name]
+# Villa Aigea Hotel Brain MCP Server
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A Python remote MCP server for Villa Aigea, a boutique luxury hotel on the Greek island of Evia. Exposes hotel data via 8 read-only MCP tools over Streamable HTTP transport.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- `cd mcp-server && python3 server.py` — start the MCP server (port 8000 by default, or `$PORT`)
+- Managed workflow: `artifacts/api-server: Villa Aigea MCP Server`
+
+## Endpoints
+
+| Path | Method | Purpose |
+|------|--------|---------|
+| `/` | GET | Health string: "Villa Aigea Hotel Brain MCP Server is running" |
+| `/health` | GET | JSON health check `{"status": "ok", ...}` |
+| `/mcp/` | POST | MCP Streamable HTTP transport (session-based) |
+
+## MCP Tools
+
+- `get_hotel_information` — hotel description, facilities, awards, policies
+- `search_available_rooms(check_in, check_out, adults, children)` — availability search with pricing
+- `get_room_details(room_id)` — full room spec + live readiness status
+- `get_price_quote(room_id, check_in, check_out)` — nightly rate, taxes, cancellation policy
+- `get_daily_briefing` — arrivals, departures, in-house guests, VIP notes
+- `check_room_readiness` — full housekeeping board for all 8 rooms
+- `find_upsell_opportunities` — guest-matched spa/dining/experience suggestions
+- `get_vip_arrivals` — VIP tiers (Platinum/Gold/Silver) with prep checklists
 
 ## Stack
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Python 3.13, FastMCP 3.4.4, uvicorn, Starlette
+- Transport: Streamable HTTP (`/mcp/`)
+- No database — demo data in `mcp-server/hotel_data.py`
+- No authentication required (demo mode)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `mcp-server/server.py` — FastMCP server, tools, custom HTTP routes
+- `mcp-server/hotel_data.py` — all demo hotel data (rooms, reservations, upsells, readiness)
+- `artifacts/api-server/.replit-artifact/artifact.toml` — deployment configuration
 
-## Architecture decisions
+## Deployment
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
-
-## Product
-
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Target: `autoscale`
+- Run command: `sh -c "cd ../../mcp-server && python3 server.py"`
+- Health check: `GET /health`
+- PORT env var injected automatically by Replit
 
 ## User preferences
 
@@ -38,8 +52,6 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- The artifact service CWD is `artifacts/api-server/`, so paths to `mcp-server/` use `../../mcp-server/`.
+- The MCP endpoint requires a session handshake (initialize) before `tools/list` or tool calls — a bare POST without `Mcp-Session-Id` correctly returns "Missing session ID".
+- Demo data is fixed; all tools reflect a snapshot date of 2025-07-26.
