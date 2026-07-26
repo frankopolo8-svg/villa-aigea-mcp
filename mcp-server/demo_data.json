@@ -1,0 +1,195 @@
+{
+  "now": "2026-07-26T09:00:00+03:00",
+  "hotel": {
+    "id": "aegean-pearl",
+    "name": "Aegean Pearl Resort",
+    "rooms_total": 120,
+    "occupancy_percent": 87
+  },
+  "policies": {
+    "max_auto_compensation_eur": 30,
+    "standard_recovery_credit_eur": 25
+  },
+  "guests": [
+    {
+      "id": "G001",
+      "name": "Daniel Weber",
+      "room": "214",
+      "status": "in_house",
+      "arrival": "2026-07-24T16:00:00+03:00",
+      "departure": "2026-07-27T11:00:00+03:00",
+      "language": "de",
+      "vip": false,
+      "loyalty_tier": "gold",
+      "complaint_count": 2,
+      "response_delay_minutes": 18,
+      "messages": [
+        "The room is very noisy and I am still waiting for an answer."
+      ],
+      "preferences": [
+        "quiet_room",
+        "late_checkout"
+      ],
+      "purchase_history": [],
+      "stay_tags": [
+        "returning_guest"
+      ],
+      "offers_sent": [],
+      "estimated_upsell_budget_eur": 70
+    },
+    {
+      "id": "G002",
+      "name": "Sofia Rossi",
+      "room": "412",
+      "status": "arriving",
+      "arrival": "2026-07-26T17:00:00+03:00",
+      "departure": "2026-07-30T11:00:00+03:00",
+      "language": "it",
+      "vip": true,
+      "loyalty_tier": "platinum",
+      "complaint_count": 0,
+      "response_delay_minutes": 0,
+      "messages": [],
+      "preferences": [
+        "spa",
+        "sea_view",
+        "romance",
+        "fine_dining"
+      ],
+      "purchase_history": [
+        "spa"
+      ],
+      "stay_tags": [
+        "anniversary",
+        "couple"
+      ],
+      "offers_sent": [],
+      "estimated_upsell_budget_eur": 160,
+      "early_checkin_requested": false
+    },
+    {
+      "id": "G003",
+      "name": "Emma Smith",
+      "room": "308",
+      "status": "arriving",
+      "arrival": "2026-07-26T12:30:00+03:00",
+      "departure": "2026-07-29T11:00:00+03:00",
+      "language": "en",
+      "vip": false,
+      "loyalty_tier": "silver",
+      "complaint_count": 0,
+      "response_delay_minutes": 0,
+      "messages": [],
+      "preferences": [
+        "breakfast",
+        "family"
+      ],
+      "purchase_history": [],
+      "stay_tags": [
+        "family"
+      ],
+      "offers_sent": [],
+      "estimated_upsell_budget_eur": 90,
+      "early_checkin_requested": true
+    },
+    {
+      "id": "G004",
+      "name": "Nikos Papadopoulos",
+      "room": "105",
+      "status": "in_house",
+      "arrival": "2026-07-25T15:00:00+03:00",
+      "departure": "2026-07-28T11:00:00+03:00",
+      "language": "el",
+      "vip": false,
+      "loyalty_tier": "none",
+      "complaint_count": 0,
+      "response_delay_minutes": 0,
+      "messages": [
+        "Ευχαριστώ, όλα είναι υπέροχα."
+      ],
+      "preferences": [
+        "spa"
+      ],
+      "purchase_history": [],
+      "stay_tags": [
+        "couple"
+      ],
+      "offers_sent": [],
+      "estimated_upsell_budget_eur": 80
+    }
+  ],
+  "rooms": [
+    {
+      "number": "308",
+      "status": "dirty",
+      "next_guest_id": "G003",
+      "occupied": false
+    },
+    {
+      "number": "412",
+      "status": "inspection",
+      "next_guest_id": "G002",
+      "occupied": false
+    },
+    {
+      "number": "214",
+      "status": "occupied",
+      "current_guest_id": "G001",
+      "occupied": true,
+      "maintenance_issue": {
+        "severity": "medium",
+        "description": "Αναφορά για θόρυβο από τη μονάδα κλιματισμού."
+      }
+    },
+    {
+      "number": "105",
+      "status": "occupied",
+      "current_guest_id": "G004",
+      "occupied": true
+    }
+  ],
+  "offers": [
+    {
+      "id": "O001",
+      "name": "Anniversary Experience",
+      "price_eur": 120,
+      "available": true,
+      "tags": [
+        "anniversary",
+        "romance",
+        "fine_dining",
+        "couple"
+      ]
+    },
+    {
+      "id": "O002",
+      "name": "Couples Spa Ritual",
+      "price_eur": 95,
+      "available": true,
+      "tags": [
+        "spa",
+        "romance",
+        "couple"
+      ]
+    },
+    {
+      "id": "O003",
+      "name": "Family Breakfast Package",
+      "price_eur": 60,
+      "available": true,
+      "tags": [
+        "breakfast",
+        "family"
+      ]
+    },
+    {
+      "id": "O004",
+      "name": "Late Checkout έως 14:00",
+      "price_eur": 25,
+      "available": true,
+      "tags": [
+        "late_checkout"
+      ]
+    }
+  ]
+}

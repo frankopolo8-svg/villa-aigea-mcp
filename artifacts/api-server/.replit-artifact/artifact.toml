@@ -10,12 +10,12 @@ name = "Villa Aigea MCP Server"
 paths = ["/"]
 
 [services.development]
-run = "cd ../../mcp-server && python3 server.py"
+run = "cd ../../mcp-server && python3 main.py"
 
 [services.production]
 
 [services.production.run]
-args = ["sh", "-c", "cd ../../mcp-server && python3 server.py"]
+args = ["sh", "-c", "cd ../../mcp-server && python3 main.py"]
 
 [services.production.run.env]
 PORT = "8000"
