@@ -7,12 +7,13 @@ import asyncio
 import httpx
 from datetime import datetime, date
 from typing import Optional
-
 from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse
 from fastmcp import FastMCP
+from fastmcp.utilities.types import Image
 
 from hotel_data import (
+
     HOTEL_INFO,
     ROOM_TYPES,
     EXISTING_RESERVATIONS,
@@ -239,7 +240,69 @@ async def search_available_rooms(
             "available_rooms": [],
         }
 @mcp.tool()
-async def get_room_photos(room_type: str | None = None) -> dict:
+async def get_room_photos(room_type: str | None = None) -> list:
+    """
+    Return actual Villa Aigea room photos as MCP image contentf
+    """
+    endpoint = (
+        "https://villa-aigea-booking-gem.lovable.app/"
+        "api/public/demo-room-photos"
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.get(endpoint)
+            response.raise_for_status()
+            result = response.json()
+
+            rooms = result.get("rooms", [])
+
+            if room_type:
+                query = room_type.strip().lower()
+                rooms = [
+                    room
+                    for room in rooms
+                    if query in room.get("room_type", "").lower()
+                ]
+
+            output = []
+
+            for room in rooms:
+                room_name = room.get("room_type", "Room")
+                output.append(f"Room: {room_name}")
+
+                for photo in room.get("photos", []):
+                    photo_url = photo.get("url")
+                    caption = photo.get("caption", room_name)
+
+                    if not photo_url:
+                        continue
+
+                    image_response = await client.get(photo_url)
+                    image_response.raise_for_status()
+
+                    image_format = (
+                        "png"
+                        if photo_url.lower().endswith(".png")
+                        else "jpeg"
+                    )
+
+                    output.append(caption)
+                    output.append(
+                        Image(
+                            data=image_response.content,
+                            format=image_format,
+                        )
+                    )
+
+            if not output:
+                return ["No matching room photos were found."]
+
+            return output
+
+    except (httpx.RequestError, httpx.HTTPStatusError, ValueError) as exc:
+        return [f"Unable to load room photos: {exc}"]
+
     """
     Return public demo photos for Villa Aigea rooms.
     """
