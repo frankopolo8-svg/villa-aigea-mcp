@@ -2,7 +2,11 @@
 Villa Aigea Hotel Brain — FastMCP Remote Server
 Streamable HTTP transport | Endpoint: /mcp/
 """
-
+ import os
+ import asyncio
+ import httpx
+ from datetime import datetime, date
+from typing import Optional
 import os
 import asyncio
 from datetime import datetime, date
@@ -179,7 +183,61 @@ def search_available_rooms(
         "available_rooms_count": len(available),
         "available_rooms": available,
     }
+@mcp.tool()
+async def search_available_rooms(
+    check_in: str,
+    check_out: str,
+    adults: int,
+    children: int,
+) -> dict:
+    """
+    Search the fictional Villa Aigea demo inventory.
 
+    The results come from the same availability endpoint used by
+    the public demo website. No real PMS, reservation or payment
+    system is accessed.
+    """
+    endpoint = (
+        "https://villa-aigea-booking-gem.lovable.app/"
+        "api/public/demo-search-availability"
+    )
+
+    payload = {
+        "check_in": check_in,
+        "check_out": check_out,
+        "adults": adults,
+        "children": children,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(endpoint, json=payload)
+            response.raise_for_status()
+            result = response.json()
+
+        if not isinstance(result, dict):
+            return {
+                "error": "invalid_endpoint_response",
+                "message": "The demo endpoint returned an invalid response.",
+                "available_rooms": [],
+            }
+
+        return result
+
+    except httpx.HTTPStatusError as exc:
+        return {
+            "error": "availability_endpoint_error",
+            "status_code": exc.response.status_code,
+            "message": "The demo availability endpoint returned an error.",
+            "available_rooms": [],
+        }
+
+    except (httpx.RequestError, ValueError) as exc:
+        return {
+            "error": "availability_endpoint_unavailable",
+            "message": str(exc),
+            "available_rooms": [],
+        }
 
 @mcp.tool()
 def get_room_details(room_id: str) -> dict:
