@@ -7,10 +7,37 @@ Streamable HTTP transport | Endpoint: /mcp/
  import httpx
  from datetime import datetime, date
 from typing import Optional
+
+
 import os
 import asyncio
+import httpx
 from datetime import datetime, date
 from typing import Optional
+
+from starlette.requests import Request
+from starlette.responses import JSONResponse, PlainTextResponse
+from fastmcp import FastMCP
+
+from hotel_data import (
+    HOTEL_INFO,
+    ROOM_TYPES,
+    EXISTING_RESERVATIONS,
+    UPSELL_CATALOG,
+    ROOM_READINESS,
+)
+
+from starlette.requests import Request
+from starlette.responses import JSONResponse, PlainTextResponse
+from fastmcp import FastMCP
+
+from hotel_data import (
+    HOTEL_INFO,
+    ROOM_TYPES,
+    EXISTING_RESERVATIONS,
+    UPSELL_CATALOG,
+    ROOM_READINESS,
+)
 
 from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse
