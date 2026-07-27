@@ -238,7 +238,40 @@ async def search_available_rooms(
             "message": str(exc),
             "available_rooms": [],
         }
+@mcp.tool()
+async def get_room_photos(room_type: str | None = None) -> dict:
+    """
+    Return public demo photos for Villa Aigea rooms.
+    """
+    endpoint = (
+        "https://villa-aigea-booking-gem.lovable.app/"
+        "api/public/demo-room-photos"
+    )
 
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(endpoint)
+            response.raise_for_status()
+            result = response.json()
+
+        rooms = result.get("rooms", [])
+
+        if room_type:
+            query = room_type.strip().lower()
+            rooms = [
+                room
+                for room in rooms
+                if query in room.get("room_type", "").lower()
+            ]
+
+        return {"rooms": rooms}
+
+    except (httpx.RequestError, httpx.HTTPStatusError, ValueError) as exc:
+        return {
+            "error": "room_photos_unavailable",
+            "message": str(exc),
+            "rooms": [],
+        }
 @mcp.tool()
 def get_room_details(room_id: str) -> dict:
     """
