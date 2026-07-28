@@ -334,6 +334,16 @@ async def get_room_photos(room_type: str | None = None) -> list:
             "error": "room_photos_unavailable",
             "message": str(exc),
             "rooms": [],
+                    }
+
+@mcp.tool()
+async def create_booking_request(
+    ...
+):
+    ...
+
+@mcp.tool()
+def get_room_details(room_id: str) -> dict:
         }
 @mcp.tool()
 def get_room_details(room_id: str) -> dict:
