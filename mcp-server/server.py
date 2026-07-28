@@ -338,12 +338,62 @@ async def get_room_photos(room_type: str | None = None) -> list:
 
 @mcp.tool()
 async def create_booking_request(
-    ...
-):
-    ...
+    room_type: str,
+    check_in: str,
+    check_out: str,
+    adults: int,
+    children: int,
+    guest_name: str,
+    guest_email: str,
+    guest_phone: str,
+) -> dict:
+    """
+    Create a demo booking request for hotel confirmation.
 
-@mcp.tool()
-def get_room_details(room_id: str) -> dict:
+    This does not create a confirmed or paid reservation.
+    """
+    endpoint = (
+        "https://villa-aigea-booking-gem.lovable.app/"
+        "api/public/demo-create-booking-request"
+    )
+
+    payload = {
+        "room_type": room_type,
+        "check_in": check_in,
+        "check_out": check_out,
+        "adults": adults,
+        "children": children,
+        "guest_name": guest_name,
+        "guest_email": guest_email,
+        "guest_phone": guest_phone,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.post(endpoint, json=payload)
+            response.raise_for_status()
+            result = response.json()
+
+        if not isinstance(result, dict):
+            return {
+                "status": "error",
+                "message": "The booking endpoint returned an invalid response.",
+            }
+
+        return result
+
+    except httpx.HTTPStatusError as exc:
+        return {
+            "status": "error",
+            "status_code": exc.response.status_code,
+            "message": "The booking request endpoint returned an error.",
+        }
+
+    except (httpx.RequestError, ValueError) as exc:
+        return {
+            "status": "error",
+            "message": str(exc),
+        }
         
 @mcp.tool()
 def get_room_details(room_id: str) -> dict:
