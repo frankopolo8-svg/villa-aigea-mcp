@@ -16,6 +16,7 @@ function getOrCreateDeviceId() {
 
 export function Chat() {
   const [error, setError] = useState<string | null>(null)
+  const [ready, setReady] = useState(false)
   const [scheme, setScheme] = useState<"light" | "dark">("dark")
 
   // Match ChatKit's theme to the user's system preference.
@@ -53,6 +54,11 @@ export function Chat() {
     composer: {
       placeholder: "Ask about rooms, dining, or your stay…",
     },
+    header: {
+      enabled: true,
+      title: { enabled: true, text: "Concierge" },
+    },
+    history: { enabled: true },
     api: {
       async getClientSecret() {
         const res = await fetch("/api/chatkit/session", {
@@ -71,6 +77,7 @@ export function Chat() {
         return client_secret
       },
     },
+    onReady: () => setReady(true),
     onError: ({ error }: { error: { name?: string } }) => {
       if (error?.name === "IntegrationError") {
         setError(
@@ -83,7 +90,7 @@ export function Chat() {
   })
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-12px_rgba(0,0,0,0.18)] ring-1 ring-black/[0.02] transition-shadow duration-300">
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04),0_18px_48px_-20px_rgba(0,0,0,0.28)] ring-1 ring-black/[0.02] transition-shadow duration-300">
       {error ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
           <p className="max-w-md text-sm font-medium text-destructive text-pretty">{error}</p>
@@ -97,7 +104,25 @@ export function Chat() {
           </a>
         </div>
       ) : (
-        <ChatKit control={control} className="min-h-0 flex-1" />
+        <>
+          <ChatKit control={control} className="min-h-0 flex-1" />
+          {!ready && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-card">
+              <div
+                className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-background font-serif text-xl font-semibold text-primary shadow-sm"
+                aria-hidden="true"
+              >
+                A
+              </div>
+              <div className="flex items-center gap-1.5" aria-hidden="true">
+                <span className="h-2 w-2 animate-bounce rounded-full bg-primary/70 [animation-delay:-0.3s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-primary/70 [animation-delay:-0.15s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-primary/70" />
+              </div>
+              <p className="text-sm text-muted-foreground">Connecting you to the concierge…</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
