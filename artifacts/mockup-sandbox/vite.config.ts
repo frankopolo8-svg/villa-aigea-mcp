@@ -7,13 +7,7 @@ import { mockupPreviewPlugin } from "./mockupPreviewPlugin";
 
 const port = Number(process.env.PORT) || 5173;
 
-const basePath = process.env.BASE_PATH;
-
-if (!basePath) {
-  throw new Error(
-    "BASE_PATH environment variable is required but was not provided.",
-  );
-}
+const basePath = process.env.BASE_PATH || "/";
 
 export default defineConfig({
   base: basePath,
