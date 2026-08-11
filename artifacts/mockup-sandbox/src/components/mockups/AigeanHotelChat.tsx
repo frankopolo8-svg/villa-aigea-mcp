@@ -1,359 +1,46 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import {
-  ArrowUp,
-  BedDouble,
-  Bell,
-  CalendarDays,
-  Check,
-  ChevronRight,
-  Clock3,
-  Coffee,
-  Compass,
-  ImageOff,
-  MapPin,
-  Paperclip,
-  Sparkles,
-  Waves,
-  Wifi,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowUp, BedDouble, Bell, CalendarDays, Check, ChevronDown, Clock3, Compass, Globe2, ImageOff, MapPin, MessageCircle, Paperclip, Sparkles, Waves, Wifi, X, type LucideIcon } from "lucide-react";
 
-type MediaItem = {
-  url: string;
-  alt?: string;
-  caption?: string;
-  mimeType?: string;
-};
+type MediaItem = { url: string; alt?: string; caption?: string; mimeType?: string };
+type Message = { id: string; role: "assistant" | "user"; text: string; time: string; media?: MediaItem[] };
+type Locale = "auto" | "el" | "en" | "de" | "fr" | "it" | "es" | "tr" | "ar" | "zh" | "ja";
+type Copy = { concierge:string; online:string; available:string; private:string; secure:string; eyebrow:string; title:string; intro:string; multilingual:string; instant:string; always:string; suggestions:string; rooms:string; availability:string; amenities:string; plan:string; reception:string; placeholder:string; message:string; local:string; hint:string; today:string; you:string; delivered:string; typing:string; loading:string; imageError:string; retry:string; more:string; fallback:string };
 
-type Message = {
-  id: string;
-  role: "assistant" | "user";
-  text: string;
-  time: string;
-  media?: MediaItem[];
-};
-
-type Suggestion = {
-  label: string;
-  prompt: string;
-  icon: LucideIcon;
-};
-
-const suggestions: Suggestion[] = [
-  { label: "Rooms & suites", prompt: "What rooms and suites are available?", icon: BedDouble },
-  { label: "Hotel amenities", prompt: "Which amenities does Aigean Hotel offer?", icon: Waves },
-  { label: "Check-in times", prompt: "What are the check-in and check-out times?", icon: Clock3 },
-  { label: "Breakfast", prompt: "Tell me about breakfast at the hotel.", icon: Coffee },
-  { label: "Location", prompt: "Where is Aigean Hotel located?", icon: MapPin },
-  { label: "Reservations", prompt: "I would like help with a reservation.", icon: CalendarDays },
+const languages: { code: Locale; label: string }[] = [
+  {code:"auto",label:"Auto"},{code:"el",label:"Ελληνικά"},{code:"en",label:"English"},{code:"de",label:"Deutsch"},{code:"fr",label:"Français"},{code:"it",label:"Italiano"},{code:"es",label:"Español"},{code:"tr",label:"Türkçe"},{code:"ar",label:"العربية"},{code:"zh",label:"中文"},{code:"ja",label:"日本語"},
 ];
-
-const answers: Record<string, string> = {
-  "What rooms and suites are available?":
-    "I can help you explore our rooms and suites. Share your travel dates and number of guests, and I’ll find the most suitable options for your stay.",
-  "Which amenities does Aigean Hotel offer?":
-    "Aigean Hotel offers thoughtfully selected amenities for a relaxed stay, including complimentary Wi-Fi and personalized concierge assistance. I can also help with any specific amenity you have in mind.",
-  "What are the check-in and check-out times?":
-    "Standard check-in begins at 3:00 PM and check-out is by 11:00 AM. Early arrival or late departure may be arranged subject to availability.",
-  "Tell me about breakfast at the hotel.":
-    "Breakfast is served each morning with a selection of fresh local produce and Mediterranean favorites. Let me know about any dietary preferences and I’ll help with the details.",
-  "Where is Aigean Hotel located?":
-    "I can provide directions, nearby landmarks, and transfer guidance. Tell me where you’ll be arriving from and I’ll suggest the easiest route.",
-  "I would like help with a reservation.":
-    "It would be my pleasure. Please share your preferred dates, number of guests, and room preferences, and I’ll guide you through the reservation options.",
+const en: Copy = { concierge:"Concierge",online:"Concierge online",available:"Available 24/7",private:"Personal assistance for every part of your stay",secure:"Secure conversation",eyebrow:"Your private hotel concierge",title:"A more thoughtful way to plan your stay",intro:"Discover Aigean Hotel with instant, personal guidance—from your first question to your arrival.",multilingual:"Multilingual assistance",instant:"Instant hotel information",always:"24/7 digital concierge",suggestions:"Ways I can help",rooms:"Explore rooms",availability:"Check availability",amenities:"Hotel amenities",plan:"Plan my stay",reception:"Contact reception",placeholder:"Ask your concierge anything...",message:"Message Aigean Hotel concierge",local:"Local knowledge, thoughtfully delivered",hint:"Enter to send · Shift + Enter for a new line",today:"Today",you:"You",delivered:"Delivered",typing:"Concierge is preparing a response",loading:"Loading image",imageError:"This image could not be displayed",retry:"Try again",more:"More languages",fallback:"Thank you for your message. I’m here to help with your Aigean Hotel stay. Please share a little more detail so I can assist you personally." };
+const copy: Record<Exclude<Locale,"auto">,Copy> = {
+  en,
+  el:{...en,concierge:"Υποδοχή",online:"Η υποδοχή είναι online",available:"Διαθέσιμο 24/7",private:"Προσωπική βοήθεια για κάθε στιγμή της διαμονής σας",secure:"Ασφαλής συνομιλία",eyebrow:"Ο προσωπικός σας ξενοδοχειακός concierge",title:"Ένας πιο προσεγμένος τρόπος να οργανώσετε τη διαμονή σας",intro:"Ανακαλύψτε το Aigean Hotel με άμεση, προσωπική καθοδήγηση—από την πρώτη ερώτηση έως την άφιξή σας.",multilingual:"Πολύγλωσση εξυπηρέτηση",instant:"Άμεσες πληροφορίες ξενοδοχείου",always:"Ψηφιακός concierge 24/7",suggestions:"Πώς μπορώ να βοηθήσω",rooms:"Δείτε τα δωμάτια",availability:"Έλεγχος διαθεσιμότητας",amenities:"Παροχές ξενοδοχείου",plan:"Οργάνωση διαμονής",reception:"Επικοινωνία με υποδοχή",placeholder:"Ρωτήστε τον concierge οτιδήποτε...",message:"Μήνυμα στον concierge",local:"Τοπική γνώση, με φροντίδα",hint:"Enter για αποστολή · Shift + Enter για νέα γραμμή",today:"Σήμερα",you:"Εσείς",delivered:"Παραδόθηκε",typing:"Ο concierge ετοιμάζει απάντηση",loading:"Φόρτωση εικόνας",imageError:"Η εικόνα δεν ήταν δυνατό να εμφανιστεί",retry:"Δοκιμάστε ξανά",more:"Περισσότερες γλώσσες",fallback:"Ευχαριστώ για το μήνυμά σας. Είμαι εδώ για να βοηθήσω με τη διαμονή σας στο Aigean Hotel. Μοιραστείτε λίγες ακόμη λεπτομέρειες."},
+  de:{...en,title:"Ihre Reise, mit mehr Aufmerksamkeit geplant",intro:"Entdecken Sie das Aigean Hotel mit sofortiger, persönlicher Unterstützung—von der ersten Frage bis zur Ankunft.",eyebrow:"Ihr persönlicher Hotel-Concierge",rooms:"Zimmer entdecken",availability:"Verfügbarkeit prüfen",amenities:"Hotelausstattung",plan:"Aufenthalt planen",reception:"Rezeption kontaktieren",placeholder:"Fragen Sie Ihren Concierge...",suggestions:"So kann ich helfen",multilingual:"Mehrsprachige Unterstützung",instant:"Sofortige Hotelinformationen",always:"Digitaler Concierge rund um die Uhr",today:"Heute",you:"Sie",delivered:"Zugestellt",fallback:"Vielen Dank für Ihre Nachricht. Ich helfe Ihnen gerne bei Ihrem Aufenthalt im Aigean Hotel."},
+  fr:{...en,title:"Une façon plus attentionnée de préparer votre séjour",intro:"Découvrez l’Aigean Hotel avec un accompagnement personnel instantané, de votre première question à votre arrivée.",eyebrow:"Votre concierge hôtelier privé",rooms:"Découvrir les chambres",availability:"Vérifier les disponibilités",amenities:"Services de l’hôtel",plan:"Planifier mon séjour",reception:"Contacter la réception",placeholder:"Demandez à votre concierge...",suggestions:"Comment puis-je vous aider",multilingual:"Assistance multilingue",instant:"Informations instantanées",always:"Concierge numérique 24h/24",today:"Aujourd’hui",you:"Vous",delivered:"Envoyé",fallback:"Merci pour votre message. Je suis à votre disposition pour votre séjour à l’Aigean Hotel."},
+  it:{...en,title:"Un modo più attento di pianificare il soggiorno",intro:"Scopri Aigean Hotel con assistenza personale immediata, dalla prima domanda fino al tuo arrivo.",eyebrow:"Il tuo concierge privato",rooms:"Scopri le camere",availability:"Verifica disponibilità",amenities:"Servizi dell’hotel",plan:"Organizza il soggiorno",reception:"Contatta la reception",placeholder:"Chiedi al concierge...",suggestions:"Come posso aiutarti",multilingual:"Assistenza multilingue",instant:"Informazioni immediate",always:"Concierge digitale 24/7",today:"Oggi",you:"Tu",delivered:"Consegnato",fallback:"Grazie per il messaggio. Sono qui per aiutarti con il soggiorno all’Aigean Hotel."},
+  es:{...en,title:"Una forma más cuidada de planificar tu estancia",intro:"Descubre Aigean Hotel con orientación personal e inmediata, desde tu primera pregunta hasta tu llegada.",eyebrow:"Tu concierge privado",rooms:"Explorar habitaciones",availability:"Consultar disponibilidad",amenities:"Servicios del hotel",plan:"Planificar mi estancia",reception:"Contactar recepción",placeholder:"Pregunta a tu concierge...",suggestions:"Cómo puedo ayudarte",multilingual:"Asistencia multilingüe",instant:"Información al instante",always:"Concierge digital 24/7",today:"Hoy",you:"Tú",delivered:"Entregado",fallback:"Gracias por tu mensaje. Estoy aquí para ayudarte con tu estancia en Aigean Hotel."},
+  tr:{...en,title:"Konaklamanızı planlamanın daha özenli yolu",intro:"İlk sorunuzdan varışınıza kadar anında, kişisel rehberlikle Aigean Hotel’i keşfedin.",eyebrow:"Özel otel danışmanınız",rooms:"Odaları keşfet",availability:"Müsaitliği kontrol et",amenities:"Otel olanakları",plan:"Konaklamamı planla",reception:"Resepsiyona ulaş",placeholder:"Danışmanınıza sorun...",suggestions:"Nasıl yardımcı olabilirim",multilingual:"Çok dilli destek",instant:"Anında otel bilgisi",always:"7/24 dijital danışman",today:"Bugün",you:"Siz",delivered:"İletildi",fallback:"Mesajınız için teşekkür ederim. Aigean Hotel konaklamanız için yardımcı olmaya hazırım."},
+  ar:{...en,concierge:"الكونسيرج",online:"الكونسيرج متصل",available:"متاح على مدار الساعة",private:"مساعدة شخصية في كل تفاصيل إقامتك",secure:"محادثة آمنة",eyebrow:"كونسيرج الفندق الخاص بك",title:"طريقة أكثر عناية لتخطيط إقامتك",intro:"اكتشف فندق Aigean بإرشاد شخصي وفوري، من سؤالك الأول حتى وصولك.",multilingual:"مساعدة متعددة اللغات",instant:"معلومات فورية عن الفندق",always:"كونسيرج رقمي 24/7",suggestions:"كيف يمكنني مساعدتك",rooms:"استكشف الغرف",availability:"تحقق من التوفر",amenities:"مرافق الفندق",plan:"خطط لإقامتي",reception:"تواصل مع الاستقبال",placeholder:"اسأل الكونسيرج...",message:"راسل كونسيرج الفندق",local:"معرفة محلية بعناية",hint:"Enter للإرسال · Shift + Enter لسطر جديد",today:"اليوم",you:"أنت",delivered:"تم التسليم",typing:"الكونسيرج يحضّر الرد",loading:"جارٍ تحميل الصورة",imageError:"تعذر عرض هذه الصورة",retry:"حاول مرة أخرى",more:"المزيد من اللغات",fallback:"شكرًا لرسالتك. أنا هنا لمساعدتك في إقامتك في فندق Aigean. يرجى مشاركة المزيد من التفاصيل."},
+  zh:{...en,title:"更贴心地规划您的旅程",intro:"从第一次咨询到抵达，Aigean Hotel 为您提供即时、贴心的专属指引。",eyebrow:"您的私人酒店礼宾",rooms:"探索客房",availability:"查询空房",amenities:"酒店设施",plan:"规划行程",reception:"联系前台",placeholder:"向礼宾提问...",suggestions:"我可以为您做什么",multilingual:"多语言服务",instant:"即时酒店信息",always:"全天候数字礼宾",today:"今天",you:"您",delivered:"已送达",fallback:"感谢您的留言。我很乐意协助您安排 Aigean Hotel 的住宿。"},
+  ja:{...en,title:"心を込めて旅をプランニング",intro:"最初のご質問からご到着まで、Aigean Hotelをパーソナルかつ迅速にご案内します。",eyebrow:"専属ホテルコンシェルジュ",rooms:"客室を見る",availability:"空室を確認",amenities:"ホテル設備",plan:"滞在を計画",reception:"フロントに連絡",placeholder:"コンシェルジュに質問...",suggestions:"お手伝いできること",multilingual:"多言語サポート",instant:"ホテル情報をすぐにご案内",always:"24時間デジタルコンシェルジュ",today:"今日",you:"お客様",delivered:"送信済み",fallback:"メッセージありがとうございます。Aigean Hotelでのご滞在をお手伝いいたします。"},
 };
+const rtlPattern=/[\u0590-\u08FF\uFB1D-\uFDFD\uFE70-\uFEFC]/; const imagePattern=/\.(avif|gif|jpe?g|png|webp)(?:\?.*)?$/i; const urlPattern=/https?:\/\/[^\s<>()]+/g;
+const direction=(text:string)=>rtlPattern.test(text)?"rtl":"ltr";
+const prompts=(t:Copy):{label:string;prompt:string;icon:LucideIcon}[]=>[
+ {label:t.rooms,prompt:t.rooms,icon:BedDouble},{label:t.availability,prompt:t.availability,icon:CalendarDays},{label:t.amenities,prompt:t.amenities,icon:Waves},{label:t.plan,prompt:t.plan,icon:Compass},{label:t.reception,prompt:t.reception,icon:MessageCircle},
+];
+function BrandMark({compact=false}:{compact?:boolean}){return <div className={compact?"brand-mark brand-mark--compact":"brand-mark"} aria-hidden="true"><span className="brand-mark__arch"/><span className="brand-mark__wave"/></div>}
+function MediaCard({item,t}:{item:MediaItem;t:Copy}){const [status,setStatus]=useState<"loading"|"ready"|"error">("loading");return <figure className="media-card"><div className="media-card__frame">{status==="loading"&&<div className="media-card__skeleton" aria-label={t.loading}/>} {status==="error"?<div className="media-card__error" role="status"><ImageOff/><span>{t.imageError}</span><button onClick={()=>setStatus("loading")}>{t.retry}</button></div>:<img src={item.url} alt={item.alt||item.caption||"Hotel"} loading="lazy" onLoad={()=>setStatus("ready")} onError={()=>setStatus("error")} className={status==="ready"?"media-card__image is-ready":"media-card__image"}/>}</div>{item.caption&&<figcaption>{item.caption}</figcaption>}</figure>}
+function ResponseContent({message,t}:{message:Message;t:Copy}){const images=useMemo(()=>{const seen=new Set<string>();return [...(message.media||[]),...(message.text.match(urlPattern)||[]).filter(u=>imagePattern.test(u)).map(url=>({url}))].filter(i=>!seen.has(i.url)&&!!seen.add(i.url))},[message]);const clean=message.text.replace(urlPattern,u=>imagePattern.test(u)?"":u).trim();return <>{clean&&<p>{clean}</p>}{images.length>0&&<div className={images.length>1?"media-grid media-grid--multiple":"media-grid"}>{images.map(i=><MediaCard key={i.url} item={i} t={t}/>)}</div>}</>}
+function MessageRow({message,t,newest}:{message:Message;t:Copy;newest:boolean}){const assistant=message.role==="assistant";return <article className={`message-row message-row--${message.role}${newest?" message-row--new":""}`} dir={direction(message.text)} aria-label={`${assistant?t.concierge:t.you} ${message.time}`}>{assistant&&<div className="concierge-avatar"><BrandMark compact/></div>}<div className="message-row__content"><div className="message-meta"><span>{assistant?`Aigean ${t.concierge}`:t.you}</span><time>{message.time}</time></div><div className="message-bubble"><ResponseContent message={message} t={t}/></div>{!assistant&&<span className="delivery-status"><Check/>{t.delivered}</span>}</div></article>}
+function Welcome({t,onSuggestion}:{t:Copy;onSuggestion:(p:string)=>void}){return <section className="welcome" aria-labelledby="welcome-title"><div className="welcome__emblem"><BrandMark/></div><div className="welcome__copy"><span className="eyebrow">{t.eyebrow}</span><h1 id="welcome-title">{t.title}</h1><p>{t.intro}</p></div><div className="benefits" aria-label="Benefits"><span><Globe2/>{t.multilingual}</span><span><Sparkles/>{t.instant}</span><span><Clock3/>{t.always}</span></div><div className="quick-actions"><strong>{t.suggestions}</strong><div className="suggestion-grid">{prompts(t).map(({label,prompt,icon:Icon},i)=><button key={label} onClick={()=>onSuggestion(prompt)} style={{"--delay":`${i*55}ms`} as React.CSSProperties}><span className="suggestion-card__icon"><Icon/></span><span>{label}</span></button>)}</div></div></section>}
 
-const rtlPattern = /[\u0590-\u08FF\uFB1D-\uFDFD\uFE70-\uFEFC]/;
-const imageExtensionPattern = /\.(avif|gif|jpe?g|png|webp)(?:\?.*)?$/i;
-const urlPattern = /https?:\/\/[^\s<>()]+/g;
-
-function getDirection(text: string) {
-  return rtlPattern.test(text) ? "rtl" : "ltr";
+export function AigeanHotelChat(){
+ const [locale,setLocale]=useState<Locale>("auto"),[open,setOpen]=useState(false),[messages,setMessages]=useState<Message[]>([]),[draft,setDraft]=useState(""),[typing,setTyping]=useState(false),[attachment,setAttachment]=useState<string|null>(null); const transcript=useRef<HTMLDivElement>(null);
+ const resolved:Exclude<Locale,"auto">=locale==="auto"?((languages.some(l=>l.code===navigator.language.slice(0,2))?navigator.language.slice(0,2):"en") as Exclude<Locale,"auto">):locale; const t=copy[resolved]||en; const rtl=resolved==="ar";
+ useEffect(()=>{const saved=localStorage.getItem("aigean-language") as Locale|null;if(saved&&languages.some(l=>l.code===saved))setLocale(saved)},[]);
+ useEffect(()=>{localStorage.setItem("aigean-language",locale);document.documentElement.lang=resolved;document.documentElement.dir=rtl?"rtl":"ltr"},[locale,resolved,rtl]); useEffect(()=>transcript.current?.scrollTo({top:transcript.current.scrollHeight,behavior:"smooth"}),[messages,typing]);
+ const choose=(code:Locale)=>{setLocale(code);setOpen(false)};
+ const send=(raw:string)=>{const text=raw.trim();if(!text||typing)return;const now=new Date(),time=now.toLocaleTimeString(resolved,{hour:"2-digit",minute:"2-digit"});setMessages(m=>[...m,{id:`u${now.getTime()}`,role:"user",text,time}]);setDraft("");setAttachment(null);setTyping(true);setTimeout(()=>{const n=new Date();setMessages(m=>[...m,{id:`a${n.getTime()}`,role:"assistant",text:t.fallback,time:n.toLocaleTimeString(resolved,{hour:"2-digit",minute:"2-digit"})}]);setTyping(false)},950)};
+ const submit=(e:FormEvent)=>{e.preventDefault();send(draft)}; const key=(e:KeyboardEvent<HTMLTextAreaElement>)=>{if(e.key==="Enter"&&!e.shiftKey&&!e.nativeEvent.isComposing&&e.keyCode!==229){e.preventDefault();send(draft)}};
+ return <main className="hotel-shell" dir={rtl?"rtl":"ltr"}><div className="hotel-shell__texture"/><section className="chat-window" aria-label="Aigean Hotel concierge chat"><header className="chat-header"><button className="hotel-identity" onClick={()=>setMessages([])} aria-label="Aigean Hotel"><BrandMark/><span className="hotel-identity__copy"><strong>Aigean Hotel</strong><small><span className="status-dot"/>{t.online}</small></span></button><div className="header-actions"><span className="availability"><Clock3/>{t.available}</span><div className="language-picker"><button className="language-button" onClick={()=>setOpen(!open)} aria-expanded={open}><Globe2/><span>{languages.find(l=>l.code===locale)?.label}</span><ChevronDown/></button>{open&&<div className="language-menu" role="menu">{languages.map(l=><button key={l.code} onClick={()=>choose(l.code)} className={locale===l.code?"is-active":""}>{l.label}{locale===l.code&&<Check/>}</button>)}<button onClick={()=>choose("auto")}><span>{t.more}</span><span aria-hidden="true">···</span></button></div>}</div><button className="icon-button" aria-label="Notifications"><Bell/></button></div></header><div className="concierge-strip"><span><Sparkles/>{t.private}</span><span className="concierge-strip__secondary"><Wifi/>{t.secure}</span></div><div className="transcript" ref={transcript} aria-live="polite"><div className="transcript__inner">{messages.length===0?<Welcome t={t} onSuggestion={send}/>:<div className="conversation"><div className="conversation-date"><span>{t.today}</span></div>{messages.map((m,i)=><MessageRow key={m.id} message={m} t={t} newest={i===messages.length-1}/>)}{typing&&<div className="message-row message-row--assistant message-row--new" role="status"><div className="concierge-avatar"><BrandMark compact/></div><div className="message-row__content"><div className="message-meta"><span>Aigean {t.concierge}</span></div><div className="message-bubble typing-bubble"><i/><i/><i/><span className="sr-only">{t.typing}</span></div></div></div>}</div>}</div></div><footer className="composer-area">{attachment&&<div className="attachment-pill"><Paperclip/><span>{attachment}</span><button onClick={()=>setAttachment(null)} aria-label="Remove"><X/></button></div>}<form className="composer" onSubmit={submit}><label className="attach-button" aria-label="Attach"><Paperclip/><input type="file" accept="image/*" onChange={e=>setAttachment(e.target.files?.[0]?.name||null)}/></label><textarea value={draft} dir={direction(draft)} onChange={e=>setDraft(e.target.value)} onKeyDown={key} placeholder={t.placeholder} rows={1} aria-label={t.message}/><button className="send-button" disabled={!draft.trim()||typing} aria-label="Send"><ArrowUp/></button></form><div className="composer-note"><span><MapPin/>{t.local}</span><span>{t.hint}</span></div></footer></section></main>
 }
-
-function extractImages(text: string): MediaItem[] {
-  return (text.match(urlPattern) ?? [])
-    .filter((url) => imageExtensionPattern.test(url))
-    .map((url) => ({ url, alt: "Image shared by the hotel concierge" }));
-}
-
-function BrandMark({ compact = false }: { compact?: boolean }) {
-  return (
-    <div className={compact ? "brand-mark brand-mark--compact" : "brand-mark"} aria-hidden="true">
-      <span className="brand-mark__arch" />
-      <span className="brand-mark__wave" />
-    </div>
-  );
-}
-
-function MediaCard({ item }: { item: MediaItem }) {
-  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
-
-  return (
-    <figure className="media-card">
-      <div className="media-card__frame">
-        {status === "loading" && <div className="media-card__skeleton" aria-label="Loading image" />}
-        {status === "error" ? (
-          <div className="media-card__error" role="status">
-            <ImageOff aria-hidden="true" />
-            <span>This image could not be displayed</span>
-            <button type="button" onClick={() => setStatus("loading")}>Try again</button>
-          </div>
-        ) : (
-          <img
-            src={item.url}
-            alt={item.alt || item.caption || "Hotel image"}
-            loading="lazy"
-            onLoad={() => setStatus("ready")}
-            onError={() => setStatus("error")}
-            className={status === "ready" ? "media-card__image is-ready" : "media-card__image"}
-          />
-        )}
-      </div>
-      {item.caption && <figcaption>{item.caption}</figcaption>}
-    </figure>
-  );
-}
-
-function ResponseContent({ message }: { message: Message }) {
-  const images = useMemo(() => {
-    const seen = new Set<string>();
-    return [...(message.media ?? []), ...extractImages(message.text)].filter((item) => {
-      if (seen.has(item.url)) return false;
-      seen.add(item.url);
-      return true;
-    });
-  }, [message]);
-
-  const cleanText = message.text.replace(urlPattern, (url) => imageExtensionPattern.test(url) ? "" : url).trim();
-
-  return (
-    <>
-      {cleanText && <p>{cleanText}</p>}
-      {images.length > 0 && (
-        <div className={images.length > 1 ? "media-grid media-grid--multiple" : "media-grid"}>
-          {images.map((item) => <MediaCard key={item.url} item={item} />)}
-        </div>
-      )}
-    </>
-  );
-}
-
-function MessageRow({ message, isNewest }: { message: Message; isNewest: boolean }) {
-  const direction = getDirection(message.text);
-  const isAssistant = message.role === "assistant";
-
-  return (
-    <article
-      className={`message-row message-row--${message.role}${isNewest ? " message-row--new" : ""}`}
-      dir={direction}
-      aria-label={`${isAssistant ? "Concierge" : "You"} at ${message.time}`}
-    >
-      {isAssistant && (
-        <div className="concierge-avatar"><BrandMark compact /></div>
-      )}
-      <div className="message-row__content">
-        <div className="message-meta">
-          <span>{isAssistant ? "Aigean Concierge" : "You"}</span>
-          <time>{message.time}</time>
-        </div>
-        <div className="message-bubble">
-          <ResponseContent message={message} />
-        </div>
-        {!isAssistant && <span className="delivery-status"><Check aria-hidden="true" /> Delivered</span>}
-      </div>
-    </article>
-  );
-}
-
-function TypingIndicator() {
-  return (
-    <div className="message-row message-row--assistant message-row--new" aria-label="Concierge is typing" role="status">
-      <div className="concierge-avatar"><BrandMark compact /></div>
-      <div className="message-row__content">
-        <div className="message-meta"><span>Aigean Concierge</span></div>
-        <div className="message-bubble typing-bubble">
-          <i /><i /><i />
-          <span className="sr-only">Concierge is preparing a response</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Welcome({ onSuggestion }: { onSuggestion: (prompt: string) => void }) {
-  return (
-    <section className="welcome" aria-labelledby="welcome-title">
-      <div className="welcome__emblem"><BrandMark /></div>
-      <div className="welcome__copy">
-        <span className="eyebrow">Your private hotel concierge</span>
-        <h1 id="welcome-title">How may we make your stay exceptional?</h1>
-        <p>Ask about your stay at Aigean Hotel. I can assist with rooms, hotel details, local guidance, and reservations.</p>
-      </div>
-      <div className="suggestion-grid" aria-label="Suggested questions">
-        {suggestions.map(({ label, prompt, icon: Icon }, index) => (
-          <button
-            key={label}
-            type="button"
-            className="suggestion-card"
-            onClick={() => onSuggestion(prompt)}
-            style={{ "--delay": `${index * 55}ms` } as React.CSSProperties}
-          >
-            <span className="suggestion-card__icon"><Icon aria-hidden="true" /></span>
-            <span>{label}</span>
-            <ChevronRight aria-hidden="true" className="suggestion-card__arrow" />
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-export function AigeanHotelChat() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [draft, setDraft] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const [attachmentName, setAttachmentName] = useState<string | null>(null);
-  const transcriptRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, isTyping]);
-
-  function sendMessage(text: string) {
-    const content = text.trim();
-    if (!content || isTyping) return;
-
-    const now = new Date();
-    const userMessage: Message = {
-      id: `user-${now.getTime()}`,
-      role: "user",
-      text: content,
-      time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
-
-    setMessages((current) => [...current, userMessage]);
-    setDraft("");
-    setAttachmentName(null);
-    setIsTyping(true);
-
-    window.setTimeout(() => {
-      const responseTime = new Date();
-      setMessages((current) => [
-        ...current,
-        {
-          id: `assistant-${responseTime.getTime()}`,
-          role: "assistant",
-          text: answers[content] ?? "Thank you for your message. I’m here to help with your Aigean Hotel stay. Could you share a little more detail so I can assist you personally?",
-          time: responseTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        },
-      ]);
-      setIsTyping(false);
-    }, 1150);
-  }
-
-  function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    sendMessage(draft);
-  }
-
-  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) {
-      event.preventDefault();
-      sendMessage(draft);
-    }
-  }
-
-  function resetConversation() {
-    setMessages([]);
-    setDraft("");
-    setAttachmentName(null);
-    setIsTyping(false);
-    textareaRef.current?.focus();
-  }
-
-  return (
-    <main className="hotel-shell">
-      <div className="hotel-shell__texture" aria-hidden="true" />
-      <section className="chat-window" aria-label="Aigean Hotel concierge chat">
-        <header className="chat-header">
-          <button className="hotel-identity" type="button" onClick={resetConversation} aria-label="Start a new conversation">
-            <BrandMark />
-            <span className="hotel-identity__copy">
-              <strong>Aigean Hotel</strong>
-              <small><span className="status-dot" /> Concierge online</small>
-            </span>
-          </button>
-          <div className="header-actions">
-            <span className="availability"><Clock3 aria-hidden="true" /> Available 24/7</span>
-            <button type="button" className="icon-button" aria-label="Concierge notifications">
-              <Bell aria-hidden="true" />
-            </button>
-          </div>
-        </header>
-
-        <div className="concierge-strip">
-          <span><Sparkles aria-hidden="true" /> Personal assistance for every part of your stay</span>
-          <span className="concierge-strip__secondary"><Wifi aria-hidden="true" /> Secure conversation</span>
-        </div>
-
-        <div className="transcript" ref={transcriptRef} aria-live="polite">
-          <div className="transcript__inner">
-            {messages.length === 0 ? (
-              <Welcome onSuggestion={sendMessage} />
-            ) : (
-              <div className="conversation">
-                <div className="conversation-date"><span>Today</span></div>
-                {messages.map((message, index) => (
-                  <MessageRow key={message.id} message={message} isNewest={index === messages.length - 1} />
-                ))}
-                {isTyping && <TypingIndicator />}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <footer className="composer-area">
-          {attachmentName && (
-            <div className="attachment-pill">
-              <Paperclip aria-hidden="true" />
-              <span>{attachmentName}</span>
-              <button type="button" onClick={() => setAttachmentName(null)} aria-label="Remove attachment"><X /></button>
-            </div>
-          )}
-          <form className="composer" onSubmit={handleSubmit}>
-            <label className="attach-button" aria-label="Attach a file">
-              <Paperclip aria-hidden="true" />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(event) => setAttachmentName(event.target.files?.[0]?.name ?? null)}
-              />
-            </label>
-            <textarea
-              ref={textareaRef}
-              value={draft}
-              dir={getDirection(draft)}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask your concierge anything..."
-              rows={1}
-              aria-label="Message Aigean Hotel concierge"
-            />
-            <button type="submit" className="send-button" disabled={!draft.trim() || isTyping} aria-label="Send message">
-              <ArrowUp aria-hidden="true" />
-            </button>
-          </form>
-          <div className="composer-note">
-            <span><Compass aria-hidden="true" /> Local knowledge, thoughtfully delivered</span>
-            <span>Enter to send · Shift + Enter for a new line</span>
-          </div>
-        </footer>
-      </section>
-    </main>
-  );
-}
-
 export default AigeanHotelChat;
