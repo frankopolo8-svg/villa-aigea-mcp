@@ -335,6 +335,129 @@ async def get_room_photos(room_type: str | None = None) -> list:
             "message": str(exc),
             "rooms": [],
                     }
+@mcp.tool()
+async def get_hotel_marketing_catalog(
+    category: str | None = None,
+    interest: str | None = None,
+    language: str | None = None,
+    max_photos: int = 3,
+) -> list:
+    """
+    Return public Villa Aigea hotel facilities and experiences with
+    their real photographs. Use for restaurant, dining, spa, massage,
+    wellness, pool, beach, yacht, yoga and other guest experiences.
+    """
+    endpoint = (
+        "https://villa-aigea-booking-gem.lovable.app/"
+        "api/public/get-hotel-marketing-catalog"
+    )
+
+    safe_max_photos = max(1, min(max_photos, 3))
+    params = {"max_photos": safe_max_photos}
+
+    if category:
+        params["category"] = category
+    if interest:
+        params["interest"] = interest
+    if language:
+        params["language"] = language
+
+    try:
+        async with httpx.AsyncClient(
+            timeout=30.0,
+            follow_redirects=True,
+        ) as client:
+            response = await client.get(endpoint, params=params)
+            response.raise_for_status()
+            result = response.json()
+
+            if not isinstance(result, dict):
+                return ["The hotel marketing catalog returned an invalid response."]
+
+            items = result.get("items", [])
+            output = []
+
+            for item in items:
+                title = item.get("title", "Villa Aigea experience")
+                item_category = item.get("category", "hotel")
+                description = (
+                    item.get("short_description")
+                    or item.get("full_description")
+                    or ""
+                )
+                primary_image_url = (
+                    item.get("primary_image_url")
+                    or item.get("cover_image_url")
+                    or ""
+                )
+                public_page_url = item.get("public_page_url", "")
+                call_to_action = item.get("call_to_action", "")
+
+                output.append(
+                    f"Title: {title}\n"
+                    f"Category: {item_category}\n"
+                    f"Description: {description}\n"
+                    f"Primary image URL: {primary_image_url}\n"
+                    f"Public page: {public_page_url}\n"
+                    f"Call to action: {call_to_action}"
+                )
+
+                photos = item.get("photos", [])
+                if not isinstance(photos, list):
+                    photos = []
+
+                if not photos and primary_image_url:
+                    photos = [{
+                        "url": primary_image_url,
+                        "caption": title,
+                    }]
+
+                seen_urls = set()
+
+                for photo in photos[:safe_max_photos]:
+                    if not isinstance(photo, dict):
+                        continue
+
+                    photo_url = photo.get("url") or photo.get("image_url")
+                    caption = photo.get("caption") or title
+
+                    if not photo_url or photo_url in seen_urls:
+                        continue
+
+                    seen_urls.add(photo_url)
+
+                    try:
+                        image_response = await client.get(photo_url)
+                        image_response.raise_for_status()
+                    except (httpx.RequestError, httpx.HTTPStatusError):
+                        continue
+
+                    content_type = image_response.headers.get(
+                        "content-type", ""
+                    ).lower()
+
+                    if "png" in content_type:
+                        image_format = "png"
+                    elif "webp" in content_type:
+                        image_format = "webp"
+                    else:
+                        image_format = "jpeg"
+
+                    output.append(caption)
+                    output.append(
+                        Image(
+                            data=image_response.content,
+                            format=image_format,
+                        )
+                    )
+
+            if not output:
+                return ["No matching Villa Aigea experiences were found."]
+
+            return output
+
+    except (httpx.RequestError, httpx.HTTPStatusError, ValueError) as exc:
+        return [f"Unable to load the hotel marketing catalog: {exc}"]
 
 @mcp.tool()
 async def create_booking_request(
