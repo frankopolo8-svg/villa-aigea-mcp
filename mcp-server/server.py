@@ -279,10 +279,10 @@ async def get_hotel_marketing_catalog(
     interest: str | None = None,
     language: str | None = None,
     max_photos: int = 3,
-) -> list:
+) -> dict:
     """
     Return public Villa Aigea hotel facilities and experiences with
-    their real photographs. Use for restaurant, dining, spa, massage,
+    their official photo URLs. Use for restaurant, dining, spa, massage,
     wellness, pool, beach, yacht, yoga and other guest experiences.
     """
     endpoint = (
@@ -310,12 +310,16 @@ async def get_hotel_marketing_catalog(
             result = response.json()
 
             if not isinstance(result, dict):
-                return ["The hotel marketing catalog returned an invalid response."]
+                return {"error": "invalid_catalog_response", "items": []}
 
             items = result.get("items", [])
+            if not isinstance(items, list):
+                return {"error": "invalid_catalog_items", "items": []}
             output = []
 
             for item in items:
+                if not isinstance(item, dict):
+                    continue
                 title = item.get("title", "Villa Aigea experience")
                 item_category = item.get("category", "hotel")
                 description = (
@@ -331,14 +335,15 @@ async def get_hotel_marketing_catalog(
                 public_page_url = item.get("public_page_url", "")
                 call_to_action = item.get("call_to_action", "")
 
-                output.append(
-                    f"Title: {title}\n"
-                    f"Category: {item_category}\n"
-                    f"Description: {description}\n"
-                    f"Primary image URL: {primary_image_url}\n"
-                    f"Public page: {public_page_url}\n"
-                    f"Call to action: {call_to_action}"
-                )
+                entry = {
+                    "title": title,
+                    "category": item_category,
+                    "description": description,
+                    "primary_image_url": primary_image_url,
+                    "public_page_url": public_page_url,
+                    "call_to_action": call_to_action,
+                    "photos": [],
+                }
 
                 photos = item.get("photos", [])
                 if not isinstance(photos, list):
@@ -364,38 +369,17 @@ async def get_hotel_marketing_catalog(
 
                     seen_urls.add(photo_url)
 
-                    try:
-                        image_response = await client.get(photo_url)
-                        image_response.raise_for_status()
-                    except (httpx.RequestError, httpx.HTTPStatusError):
-                        continue
+                    entry["photos"].append({"url": photo_url, "caption": caption})
 
-                    content_type = image_response.headers.get(
-                        "content-type", ""
-                    ).lower()
-
-                    if "png" in content_type:
-                        image_format = "png"
-                    elif "webp" in content_type:
-                        image_format = "webp"
-                    else:
-                        image_format = "jpeg"
-
-                    output.append(caption)
-                    output.append(
-                        Image(
-                            data=image_response.content,
-                            format=image_format,
-                        )
-                    )
+                output.append(entry)
 
             if not output:
-                return ["No matching Villa Aigea experiences were found."]
+                return {"items": [], "message": "No matching Villa Aigea experiences were found."}
 
-            return output
+            return {"items": output}
 
     except (httpx.RequestError, httpx.HTTPStatusError, ValueError) as exc:
-        return [f"Unable to load the hotel marketing catalog: {exc}"]
+        return {"error": "marketing_catalog_unavailable", "message": str(exc), "items": []}
 
 @mcp.tool()
 async def create_booking_request(
