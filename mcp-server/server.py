@@ -747,7 +747,49 @@ def get_vip_arrivals() -> dict:
     }
 
 
-# ---------------------------------------------------------------------------
+@mcp.tool()
+async def search_hotel_knowledge(query: str) -> dict:
+    """Search the official Villa Aigea guest knowledge base."""
+
+    vector_store_id = "vs_6a6a85b7e23c819198d871919f6c49d7"
+    api_key = os.getenv("VILLA_AIGEA_KNOWLEDGE_API_KEY")
+
+    if not api_key:
+        return {
+            "error": "knowledge_api_not_configured",
+            "results": []
+        }
+
+    endpoint = (
+        f"https://api.openai.com/v1/"
+        f"vector_stores/{vector_store_id}/search"
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.post(
+                endpoint,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "query": query,
+                    "max_num_results": 3
+                }
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        return {
+            "results": data.get("data", [])
+        }
+
+    except (httpx.HTTPError, ValueError):
+        return {
+            "error": "knowledge_search_unavailable",
+            "results": []
+        }# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
