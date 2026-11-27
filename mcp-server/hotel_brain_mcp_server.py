@@ -38,6 +38,11 @@ mcp = FastMCP(
 # ---------------------------------------------------------------------------
 
 
+from stay_tools import register_stay_tools
+
+register_stay_tools(mcp)
+
+
 @mcp.custom_route("/", methods=["GET"])
 async def root(request: Request) -> PlainTextResponse:
     return PlainTextResponse("Hotel Brain MCP Server is running")

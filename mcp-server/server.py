@@ -44,6 +44,11 @@ mcp = FastMCP(
 # ---------------------------------------------------------------------------
 
 
+from stay_tools import register_stay_tools
+
+register_stay_tools(mcp)
+
+
 @mcp.custom_route("/", methods=["GET"])
 async def root(request: Request) -> PlainTextResponse:
     return PlainTextResponse("Villa Aigea Hotel Brain MCP Server is running")
@@ -440,6 +445,7 @@ async def create_booking_request(
             "message": str(exc),
         }
         
+
 @mcp.tool()
 def get_room_details(room_id: str) -> dict:
     """
