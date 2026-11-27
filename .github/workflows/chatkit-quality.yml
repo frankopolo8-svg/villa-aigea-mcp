@@ -1,0 +1,30 @@
+name: Chatkit deployment quality
+on:
+  push:
+    branches: [main, ci/chatkit-production-quality]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Chatkit production quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Check MCP Python modules and bundled JSON
+        run: |
+          python -m compileall -q main.py mcp-server
+          python -m json.tool mcp-server/demo_data.json > /dev/null
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run typecheck
